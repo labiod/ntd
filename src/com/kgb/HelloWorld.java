@@ -1,3 +1,11 @@
+package com.kgb;
+
+import com.kgb.drawing.Canvas;
+import com.kgb.drawing.Color;
+import com.kgb.drawing.Paint;
+import com.kgb.objects.ObjectManager;
+import com.kgb.objects.Rectangle;
+import com.kgb.objects.Round;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -15,8 +23,13 @@ public class HelloWorld {
 
     private GLFWErrorCallback mErrorCallback;
     private GLFWKeyCallback mKeyCallback;
+    private ObjectManager mObjectManager;
 
     private long mWindow;
+    private int mWIDTH;
+    private int mHEIGHT;
+    private Paint mMainPaint;
+    private Canvas mCanvas;
 
     public void run() {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -35,6 +48,11 @@ public class HelloWorld {
     }
 
     private void init() {
+        mMainPaint = new Paint();
+        mMainPaint.setColor(Color.WHITE);
+        mObjectManager = new ObjectManager();
+        mObjectManager.addObject(new Round(400, 400, 100));
+        mObjectManager.addObject(new Rectangle(100, 100, 300, 250));
         mErrorCallback = GLFWErrorCallback.createPrint(System.err);
         glfwSetErrorCallback(mErrorCallback);
 
@@ -48,11 +66,11 @@ public class HelloWorld {
         // the window will be resizable
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        int WIDTH = 1024;
-        int HEIGHT = 768;
+        mWIDTH = 1024;
+        mHEIGHT = 768;
 
         // Create the window
-        mWindow = glfwCreateWindow(WIDTH, HEIGHT, "Hello World!", NULL, NULL);
+        mWindow = glfwCreateWindow(mWIDTH, mHEIGHT, "Hello World!", NULL, NULL);
         if(mWindow == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
@@ -98,8 +116,8 @@ public class HelloWorld {
         GLFWVidMode vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         // Center our window
         glfwSetWindowPos(mWindow,
-                (vidMode.width() - WIDTH) / 2,
-                (vidMode.height() - HEIGHT) / 2);
+                (vidMode.width() - mWIDTH) / 2,
+                (vidMode.height() - mHEIGHT) / 2);
 
         // Make the OpenGL context current
         glfwMakeContextCurrent(mWindow);
@@ -121,21 +139,54 @@ public class HelloWorld {
         GL.createCapabilities();
 
         //Clear to default color
-        glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glEnable(GL_DEPTH_TEST);
+        System.out.println("OpenGL: " + glGetString(GL_VERSION));
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(0, mWIDTH, mHEIGHT, 0, 1, -1);
+        glMatrixMode(GL_MODELVIEW);
+        mCanvas = new Canvas(0, 0, mWIDTH, mHEIGHT, Color.WHITE);
+
         while( glfwWindowShouldClose(mWindow) == GLFW_FALSE) {
-            // clear the framebuffer
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            update();
+            render();
+//            mObjectManager.drawObjects();
 
-            // swap the color buffers
-            glfwSwapBuffers(mWindow);
 
-            // Poll for window events. The key callback above will only be
-            // invoked during this call.
-            glfwPollEvents();
+            glPopMatrix();
         }
+    }
+
+    private void render() {
+        // clear the framebuffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glColor3f(0.5f, 0.5f, 1.0f);
+
+        mObjectManager.drawObjects(mCanvas);
+        // swap the color buffers
+        glfwSwapBuffers(mWindow);
+
+    }
+
+    private void drawCircle(int centerX, int centerY, int radius, int numSegment) {
+        glPushMatrix();
+        glBegin(GL_LINE_LOOP);
+        for(int ii = 0; ii < numSegment; ++ii) {
+            float theta = (float) ((2.0f * Math.PI * ii) / numSegment);
+            float x = (float) (radius * Math.cos(theta));
+            float y = (float) (radius * Math.sin(theta));
+            glVertex2f(x + centerX, y + centerY);
+        }
+        glEnd();
+        glPopMatrix();
+    }
+
+    private void update() {
+        glfwPollEvents();
     }
 
     public static void main(String[] args) {
