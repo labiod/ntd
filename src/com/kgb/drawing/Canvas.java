@@ -1,6 +1,5 @@
 package com.kgb.drawing;
 
-import com.kgb.objects.DrawalbeObject;
 import org.lwjgl.opengl.GL11;
 
 /**

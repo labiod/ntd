@@ -3,9 +3,7 @@ package com.kgb;
 import com.kgb.drawing.Canvas;
 import com.kgb.drawing.Color;
 import com.kgb.drawing.Paint;
-import com.kgb.objects.ObjectManager;
-import com.kgb.objects.Rectangle;
-import com.kgb.objects.Round;
+import com.kgb.objects.*;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -30,6 +28,9 @@ public class HelloWorld {
     private int mHEIGHT;
     private Paint mMainPaint;
     private Canvas mCanvas;
+    private ThreadManager mThreadManager;
+    private Monster mMonster;
+    private Tower mTower;
 
     public void run() {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -44,15 +45,13 @@ public class HelloWorld {
         } finally {
             glfwTerminate();
             mErrorCallback.release();
+            mThreadManager.killAllTask();
         }
     }
 
     private void init() {
         mMainPaint = new Paint();
         mMainPaint.setColor(Color.WHITE);
-        mObjectManager = new ObjectManager();
-        mObjectManager.addObject(new Round(400, 400, 100));
-        mObjectManager.addObject(new Rectangle(100, 100, 300, 250));
         mErrorCallback = GLFWErrorCallback.createPrint(System.err);
         glfwSetErrorCallback(mErrorCallback);
 
@@ -127,6 +126,16 @@ public class HelloWorld {
         // Make the window visible
         glfwShowWindow(mWindow);
         glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        mThreadManager = ThreadManager.getInstance();
+        mThreadManager.setRendering(60);
+
+        mObjectManager = ObjectManager.getInstance();
+        mMonster = new Monster(200, 50, 260, 90, Color.BLUE, 100);
+        mTower = new Tower(160, 135, 180, 175, Color.GREEN);
+        mTower.setTarget(mMonster);
+        mObjectManager.addObject(mMonster);
+//        mObjectManager.addObject(new Rectangle(10, 10, 30, 25, Color.GREEN));
+        mObjectManager.addObject(mTower);
     }
 
 
@@ -154,9 +163,6 @@ public class HelloWorld {
         while( glfwWindowShouldClose(mWindow) == GLFW_FALSE) {
             update();
             render();
-//            mObjectManager.drawObjects();
-
-
             glPopMatrix();
         }
     }
@@ -167,6 +173,7 @@ public class HelloWorld {
         glColor3f(0.5f, 0.5f, 1.0f);
 
         mObjectManager.drawObjects(mCanvas);
+        mMonster.move();
         // swap the color buffers
         glfwSwapBuffers(mWindow);
 
